@@ -165,7 +165,7 @@ export default function HistoryScreen() {
         <View style={styles.filterContainer}>
           {[
             { label: 'Semua', value: 'all' },
-            { label: 'Etis', value: 'passed' },
+            { label: 'Etis', value: 'safe' },
             { label: 'Perlu Tinjauan', value: 'caution' },
             { label: 'Tidak Etis', value: 'risky' },
           ].map((filter) => (
