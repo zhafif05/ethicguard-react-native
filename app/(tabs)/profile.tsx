@@ -1,25 +1,26 @@
 // app/(tabs)/profile.tsx - ANIMATED VERSION
 import {
-    AnimatedCounter,
-    AnimatedProgress,
-    BounceCard,
-    FloatingView,
-    GlowCard,
-    PulseView,
-    ScalePressable,
+  AnimatedCounter,
+  AnimatedProgress,
+  BounceCard,
+  FloatingView,
+  GlowCard,
+  PulseView,
+  ScalePressable,
 } from '@/components/ui/AnimatedComponents';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, {
-    BounceIn,
-    FadeInDown,
-    FadeInUp,
-    SlideInRight,
-    ZoomIn
+  BounceIn,
+  FadeInDown,
+  FadeInUp,
+  SlideInRight,
+  ZoomIn
 } from 'react-native-reanimated';
 
 // ⚠️ GANTI IP INI!
@@ -89,12 +90,19 @@ export default function ProfileScreen() {
       // Gunakan user-001 sebagai default karena data di database menggunakan ID ini
       const userId = 'user-001';
       
+      // Get auth token
+      const token = await AsyncStorage.getItem('authToken');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      };
+      
       // 1. Fetch history untuk menghitung statistik (paling akurat)
       const historyResponse = await fetch(
         `${API_URL}/analysis/history?userId=${userId}&limit=100`,
         {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
         }
       );
 
@@ -138,7 +146,7 @@ export default function ProfileScreen() {
         `${API_URL}/user/stats?userId=${userId}`,
         {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
         }
       );
 

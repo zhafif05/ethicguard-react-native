@@ -1,13 +1,14 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView } from 'react-native';
 
-import { useAuth } from '@/contexts/AuthContext';
 import FeatureCards from '@/components/home/FeatureCards';
 import HeroSection from '@/components/home/HeroSection';
 import SummaryStatsCard from '@/components/home/SummaryStatsCard';
 import UserStatsCard from '@/components/home/UserStatsCard';
+import { useAuth } from '@/contexts/AuthContext';
 import { styles } from '@/styles/homeStyles';
 
 const API_URL = 'http://10.122.49.114:3000/api';
@@ -40,8 +41,15 @@ export default function HomeScreen() {
       // Gunakan user-001 sebagai default karena data di database menggunakan ID ini
       const userId = 'user-001';
       
+      // Get auth token
+      const token = await AsyncStorage.getItem('authToken');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      };
+      
       // 1. Fetch history untuk menghitung statistik
-      const historyRes = await fetch(`${API_URL}/analysis/history?userId=${userId}&limit=100`);
+      const historyRes = await fetch(`${API_URL}/analysis/history?userId=${userId}&limit=100`, { headers });
       if (historyRes.ok) {
         const historyJson = await historyRes.json();
         if (historyJson.status === 'success') {
@@ -78,7 +86,7 @@ export default function HomeScreen() {
       }
       
       // 2. Coba fetch dari user/stats juga (jika ada data tambahan)
-      const userRes = await fetch(`${API_URL}/user/stats?userId=${userId}`);
+      const userRes = await fetch(`${API_URL}/user/stats?userId=${userId}`, { headers });
       if (userRes.ok) {
         const json = await userRes.json();
         if (json.status === 'success' && json.data) {
@@ -94,7 +102,8 @@ export default function HomeScreen() {
       }
 
       const summaryRes = await fetch(
-        `${API_URL}/analysis/stats/summary?userId=user-001`
+        `${API_URL}/analysis/stats/summary?userId=user-001`,
+        { headers }
       );
       if (summaryRes.ok) {
         const json = await summaryRes.json();

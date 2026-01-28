@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
-    RefreshControl,
-    ScrollView,
-    Text
+  Alert,
+  RefreshControl,
+  ScrollView,
+  Text
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -41,7 +42,15 @@ export default function HistoryScreen() {
         params.append('status', selectedFilter);
       }
 
-      const res = await fetch(`${API_URL}/analysis/history?${params}`);
+      // Get auth token
+      const token = await AsyncStorage.getItem('authToken');
+
+      const res = await fetch(`${API_URL}/analysis/history?${params}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
       const data = await res.json();
 
       if (data.status === 'success') {

@@ -1,35 +1,36 @@
 // app/(tabs)/check.tsx - VERSI DENGAN ANIMASI INTERAKTIF
 import {
-    AnimatedProgress,
-    PulseView,
-    ScalePressable,
-    ShakeView,
-    SlideInItem,
+  AnimatedProgress,
+  PulseView,
+  ScalePressable,
+  ShakeView,
+  SlideInItem,
 } from '@/components/ui/AnimatedComponents';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import Animated, {
-    BounceIn,
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
-    SlideInRight,
-    useAnimatedStyle,
-    useSharedValue,
-    withSequence,
-    withSpring,
-    ZoomIn
+  BounceIn,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  SlideInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  ZoomIn
 } from 'react-native-reanimated';
 
 // GANTI DENGAN IP LAPTOP ANDA!
@@ -63,10 +64,18 @@ export default function CheckScreen() {
     );
 
     try {
+      // Get auth token from storage
+      const token = await AsyncStorage.getItem('authToken');
+      
+      console.log('Sending analysis request...');
+      console.log('Token:', token ? 'Present' : 'Missing');
+      console.log('Text:', text.substring(0, 50) + '...');
+      
       const response = await fetch(`${API_URL}/analysis/check`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify({
           text: text,
@@ -74,11 +83,27 @@ export default function CheckScreen() {
         }),
       });
 
+      // Log full response for debugging
+      const responseText = await response.text();
+      console.log('Response status:', response.status);
+      console.log('Response body:', responseText);
+
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        console.error('API Error:', response.status, responseText);
+        
+        // Tampilkan pesan error dari server jika ada
+        let serverMessage = '';
+        try {
+          const errorData = JSON.parse(responseText);
+          serverMessage = errorData.message || errorData.error || '';
+        } catch (e) {
+          serverMessage = responseText;
+        }
+        
+        throw new Error(`Server error ${response.status}: ${serverMessage}`);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(responseText);
 
       if (data.status === 'success') {
         setResult(data.data.analysis);
@@ -87,11 +112,15 @@ export default function CheckScreen() {
       }
     } catch (error: any) {
       console.error('Error analyzing content:', error);
-      Alert.alert(
-        'Error',
-        'Gagal menganalisis konten. Pastikan backend sudah jalan dan IP sudah benar.',
-        [{ text: 'OK' }]
-      );
+      
+      let errorMessage = 'Gagal menganalisis konten.';
+      if (error.message.includes('Network request failed')) {
+        errorMessage = `Tidak dapat terhubung ke server.\n\nPastikan:\n1. Backend server sudah berjalan di port 3000\n2. HP dan laptop dalam WiFi yang sama\n3. IP address benar: ${API_URL}`;
+      } else if (error.message.includes('Server error')) {
+        errorMessage = `Server error: ${error.message}`;
+      }
+      
+      Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
     } finally {
       setAnalyzing(false);
     }
