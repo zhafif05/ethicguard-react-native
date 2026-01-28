@@ -2,20 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
-  Alert,
-  RefreshControl,
-  ScrollView,
-  Text,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    Text
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import EmptyState from '../../components/history/EmptyState';
 import FilterButtons from '../../components/history/FilterButtons';
 import HistoryList from '../../components/history/HistoryList';
 import LoadingState from '../../components/history/LoadingState';
-import EmptyState from '../../components/history/EmptyState';
 import StatsSummary from '../../components/history/StatsSummary';
+import { PulseView } from '../../components/ui/AnimatedComponents';
 import { styles } from '../../styles/historyStyles';
 
-const API_URL = 'http://192.168.1.11:3000/api';
+const API_URL = 'http://10.122.49.114:3000/api';
 
 export default function HistoryScreen() {
   const [history, setHistory] = useState<any[]>([]);
@@ -88,7 +90,16 @@ export default function HistoryScreen() {
       }
     >
       <LinearGradient colors={['#0f172a', '#1e293b']} style={styles.gradient}>
-        <Text style={styles.title}>Riwayat Analisis</Text>
+        {/* Animated Title */}
+        <Animated.View 
+          entering={FadeInDown.delay(100).springify()}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }}
+        >
+          <PulseView pulseScale={1.1} duration={2000}>
+            <Ionicons name="time" size={28} color="#3b82f6" />
+          </PulseView>
+          <Text style={styles.title}>Riwayat Analisis</Text>
+        </Animated.View>
 
         <FilterButtons
           selectedFilter={selectedFilter}

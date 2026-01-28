@@ -1,32 +1,66 @@
-// app/(tabs)/check.tsx - VERSI DENGAN BACKEND API
+// app/(tabs)/check.tsx - VERSI DENGAN ANIMASI INTERAKTIF
+import {
+    AnimatedProgress,
+    PulseView,
+    ScalePressable,
+    ShakeView,
+    SlideInItem,
+} from '@/components/ui/AnimatedComponents';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+    BounceIn,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    SlideInRight,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring,
+    ZoomIn
+} from 'react-native-reanimated';
 
 // GANTI DENGAN IP LAPTOP ANDA!
-// Cara cek IP: Windows (ipconfig) / Mac (ifconfig)
-const API_URL = 'http://192.168.1.11:3000/api'; // ⚠️ GANTI IP INI!
+const API_URL = 'http://10.122.49.114:3000/api';
 
 export default function CheckScreen() {
   const [text, setText] = useState('');
   const [result, setResult] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [showError, setShowError] = useState(false);
+
+  // Animation values
+  const buttonScale = useSharedValue(1);
+  const inputBorderColor = useSharedValue(0);
 
   const handleAnalyze = async () => {
-    if (!text.trim()) return;
+    if (!text.trim()) {
+      setShowError(true);
+      setTimeout(() => setShowError(false), 500);
+      return;
+    }
 
+    Keyboard.dismiss();
     setAnalyzing(true);
     setResult(null);
+
+    // Button animation
+    buttonScale.value = withSequence(
+      withSpring(0.95),
+      withSpring(1)
+    );
 
     try {
       const response = await fetch(`${API_URL}/analysis/check`, {
@@ -36,7 +70,7 @@ export default function CheckScreen() {
         },
         body: JSON.stringify({
           text: text,
-          userId: 'user-001', // Bisa diganti dengan user ID real
+          userId: 'user-001',
         }),
       });
 
@@ -69,137 +103,197 @@ export default function CheckScreen() {
     return 'close-circle';
   };
 
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <LinearGradient colors={['#0f172a', '#1e293b']} style={styles.gradient}>
-        <Text style={styles.title}>Cek Etika Konten</Text>
+        {/* Animated Title */}
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <View style={styles.headerRow}>
+            <PulseView pulseScale={1.1} duration={2000}>
+              <Ionicons name="shield-checkmark" size={32} color="#3b82f6" />
+            </PulseView>
+            <Text style={styles.title}>Cek Etika Konten</Text>
+          </View>
+        </Animated.View>
 
-        {/* Input Section */}
-        <View style={styles.inputCard}>
-          <Text style={styles.label}>Masukkan caption, komentar, atau status</Text>
-          <TextInput
-            style={styles.input}
-            multiline
-            numberOfLines={6}
-            value={text}
-            onChangeText={setText}
-            placeholder="Contoh: Hari ini saya sangat senang..."
-            placeholderTextColor="#64748b"
-            textAlignVertical="top"
-          />
+        {/* Input Section with Animation */}
+        <Animated.View entering={FadeInUp.delay(200).springify()}>
+          <ShakeView trigger={showError}>
+            <View style={[styles.inputCard, showError && styles.inputCardError]}>
+              <View style={styles.labelRow}>
+                <Ionicons name="create-outline" size={18} color="#3b82f6" />
+                <Text style={styles.label}>Masukkan caption, komentar, atau status</Text>
+              </View>
+              
+              <TextInput
+                style={styles.input}
+                multiline
+                numberOfLines={6}
+                value={text}
+                onChangeText={setText}
+                placeholder="Contoh: Hari ini saya sangat senang..."
+                placeholderTextColor="#64748b"
+                textAlignVertical="top"
+              />
 
-          <TouchableOpacity
-            style={[styles.button, (!text.trim() || analyzing) && styles.buttonDisabled]}
-            onPress={handleAnalyze}
-            disabled={!text.trim() || analyzing}
-            activeOpacity={0.8}
-          >
-            {analyzing ? (
-              <LinearGradient colors={['#475569', '#475569']} style={styles.buttonGradient}>
-                <ActivityIndicator color="#fff" size="small" />
-                <Text style={styles.buttonText}>Menganalisis...</Text>
-              </LinearGradient>
-            ) : (
-              <LinearGradient
-                colors={['#3b82f6', '#10b981']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.buttonGradient}
-              >
-                <Ionicons name="search" size={20} color="#fff" />
-                <Text style={styles.buttonText}>Analisis dengan AI</Text>
-              </LinearGradient>
-            )}
-          </TouchableOpacity>
-        </View>
+              {/* Character Count */}
+              <Text style={styles.charCount}>
+                {text.length} karakter
+              </Text>
 
-        {/* Result Section */}
+              <Animated.View style={buttonAnimatedStyle}>
+                <ScalePressable
+                  onPress={handleAnalyze}
+                  disabled={!text.trim() || analyzing}
+                  scaleValue={0.97}
+                >
+                  <View style={[styles.button, (!text.trim() || analyzing) && styles.buttonDisabled]}>
+                    {analyzing ? (
+                      <LinearGradient colors={['#475569', '#475569']} style={styles.buttonGradient}>
+                        <ActivityIndicator color="#fff" size="small" />
+                        <Text style={styles.buttonText}>Menganalisis...</Text>
+                      </LinearGradient>
+                    ) : (
+                      <LinearGradient
+                        colors={['#3b82f6', '#10b981']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.buttonGradient}
+                      >
+                        <Ionicons name="sparkles" size={20} color="#fff" />
+                        <Text style={styles.buttonText}>Analisis dengan AI</Text>
+                      </LinearGradient>
+                    )}
+                  </View>
+                </ScalePressable>
+              </Animated.View>
+            </View>
+          </ShakeView>
+        </Animated.View>
+
+        {/* Result Section with Animations */}
         {result && (
           <View style={styles.resultsContainer}>
             {/* Status Card */}
-            <View style={[styles.statusCard, { borderColor: result.color }]}>
-              <Ionicons name={getStatusIcon(result.status)} size={64} color={result.color} />
-              <Text style={[styles.statusLabel, { color: result.color }]}>
-                {result.label}
-              </Text>
+            <Animated.View entering={ZoomIn.delay(100).springify()}>
+              <ScalePressable scaleValue={0.98}>
+                <View style={[styles.statusCard, { borderColor: result.color }]}>
+                  <PulseView pulseScale={1.1} duration={1500}>
+                    <Ionicons name={getStatusIcon(result.status)} size={64} color={result.color} />
+                  </PulseView>
+                  <Text style={[styles.statusLabel, { color: result.color }]}>
+                    {result.label}
+                  </Text>
 
-              {/* Score */}
-              <View style={styles.scoreContainer}>
-                <View style={styles.scoreHeader}>
-                  <Text style={styles.scoreText}>Skor Etika</Text>
-                  <Text style={styles.scoreNumber}>{result.score}/100</Text>
+                  {/* Animated Score */}
+                  <Animated.View entering={FadeIn.delay(300)} style={styles.scoreContainer}>
+                    <View style={styles.scoreHeader}>
+                      <Text style={styles.scoreText}>🎯 Skor Etika</Text>
+                      <Text style={styles.scoreNumber}>{result.score}/100</Text>
+                    </View>
+
+                    {/* Animated Progress Bar */}
+                    <AnimatedProgress
+                      progress={result.score}
+                      color={result.color}
+                      delay={400}
+                      height={12}
+                    />
+                  </Animated.View>
+
+                  {/* Details */}
+                  <Animated.View entering={FadeInUp.delay(500)} style={styles.detailsContainer}>
+                    <Text style={styles.detailsText}>
+                      📊 Kata: {result.details?.wordCount || 0} | Karakter: {result.details?.textLength || 0}
+                    </Text>
+                    <Text style={styles.detailsText}>
+                      ⚠️ Masalah ditemukan: {result.details?.issuesCount || 0}
+                    </Text>
+                  </Animated.View>
                 </View>
+              </ScalePressable>
+            </Animated.View>
 
-                {/* Progress Bar */}
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      { width: `${result.score}%`, backgroundColor: result.color },
-                    ]}
-                  />
-                </View>
-              </View>
-
-              {/* Details */}
-              <View style={styles.detailsContainer}>
-                <Text style={styles.detailsText}>
-                  📊 Kata: {result.details?.wordCount || 0} | Karakter: {result.details?.textLength || 0}
-                </Text>
-                <Text style={styles.detailsText}>
-                  ⚠️ Masalah ditemukan: {result.details?.issuesCount || 0}
-                </Text>
-              </View>
-            </View>
-
-            {/* Warnings */}
+            {/* Warnings with Slide Animation */}
             {result.warnings && result.warnings.length > 0 && (
-              <View style={styles.warningCard}>
-                <View style={styles.warningHeader}>
-                  <Ionicons name="warning" size={20} color="#f59e0b" />
-                  <Text style={styles.warningTitle}>Peringatan</Text>
-                </View>
-                {result.warnings.map((warning: string, index: number) => (
-                  <Text key={index} style={styles.warningText}>
-                    • {warning}
-                  </Text>
-                ))}
-              </View>
-            )}
-
-            {/* Recommendations */}
-            {result.recommendations && result.recommendations.length > 0 && (
-              <View style={styles.recommendCard}>
-                <View style={styles.recommendHeader}>
-                  <Ionicons name="bulb" size={20} color="#3b82f6" />
-                  <Text style={styles.recommendTitle}>Rekomendasi</Text>
-                </View>
-                {result.recommendations.map((rec: string, index: number) => (
-                  <Text key={index} style={styles.recommendText}>
-                    ✓ {rec}
-                  </Text>
-                ))}
-              </View>
-            )}
-
-            {/* Impact */}
-            <View style={styles.impactCard}>
-              <Text style={styles.impactTitle}>Simulasi Dampak</Text>
-              <Text style={styles.impactText}>{result.impact}</Text>
-            </View>
-
-            {/* Suggestions Detail */}
-            {result.suggestions && result.suggestions.length > 0 && (
-              <View style={styles.suggestionsCard}>
-                <Text style={styles.suggestionsTitle}>💡 Saran Perbaikan Detail</Text>
-                {result.suggestions.map((sugg: any, index: number) => (
-                  <View key={index} style={styles.suggestionItem}>
-                    <Text style={styles.suggestionCategory}>{sugg.category}</Text>
-                    <Text style={styles.suggestionIssue}>Masalah: {sugg.issue}</Text>
-                    <Text style={styles.suggestionText}>Saran: {sugg.suggestion}</Text>
+              <Animated.View entering={SlideInRight.delay(200).springify()}>
+                <ScalePressable scaleValue={0.98}>
+                  <View style={styles.warningCard}>
+                    <View style={styles.warningHeader}>
+                      <PulseView pulseScale={1.15} duration={1000}>
+                        <Ionicons name="warning" size={20} color="#f59e0b" />
+                      </PulseView>
+                      <Text style={styles.warningTitle}>Peringatan</Text>
+                    </View>
+                    {result.warnings.map((warning: string, index: number) => (
+                      <SlideInItem key={index} index={index}>
+                        <Text style={styles.warningText}>• {warning}</Text>
+                      </SlideInItem>
+                    ))}
                   </View>
-                ))}
-              </View>
+                </ScalePressable>
+              </Animated.View>
+            )}
+
+            {/* Recommendations with Animation */}
+            {result.recommendations && result.recommendations.length > 0 && (
+              <Animated.View entering={SlideInRight.delay(300).springify()}>
+                <ScalePressable scaleValue={0.98}>
+                  <View style={styles.recommendCard}>
+                    <View style={styles.recommendHeader}>
+                      <PulseView pulseScale={1.15} duration={1200}>
+                        <Ionicons name="bulb" size={20} color="#3b82f6" />
+                      </PulseView>
+                      <Text style={styles.recommendTitle}>Rekomendasi</Text>
+                    </View>
+                    {result.recommendations.map((rec: string, index: number) => (
+                      <SlideInItem key={index} index={index}>
+                        <Text style={styles.recommendText}>✓ {rec}</Text>
+                      </SlideInItem>
+                    ))}
+                  </View>
+                </ScalePressable>
+              </Animated.View>
+            )}
+
+            {/* Impact Card */}
+            <Animated.View entering={FadeInUp.delay(400).springify()}>
+              <ScalePressable scaleValue={0.98}>
+                <View style={styles.impactCard}>
+                  <View style={styles.impactHeader}>
+                    <Ionicons name="globe-outline" size={20} color="#8b5cf6" />
+                    <Text style={styles.impactTitle}>Simulasi Dampak</Text>
+                  </View>
+                  <Text style={styles.impactText}>{result.impact}</Text>
+                </View>
+              </ScalePressable>
+            </Animated.View>
+
+            {/* Suggestions Detail with Stagger */}
+            {result.suggestions && result.suggestions.length > 0 && (
+              <Animated.View entering={BounceIn.delay(500)}>
+                <ScalePressable scaleValue={0.98}>
+                  <View style={styles.suggestionsCard}>
+                    <View style={styles.suggestionsHeader}>
+                      <Ionicons name="sparkles" size={20} color="#10b981" />
+                      <Text style={styles.suggestionsTitle}>Saran Perbaikan Detail</Text>
+                    </View>
+                    {result.suggestions.map((sugg: any, index: number) => (
+                      <SlideInItem key={index} index={index} style={styles.suggestionItem}>
+                        <View style={styles.suggestionCategoryBadge}>
+                          <Text style={styles.suggestionCategory}>{sugg.category}</Text>
+                        </View>
+                        <Text style={styles.suggestionIssue}>❌ Masalah: {sugg.issue}</Text>
+                        <Text style={styles.suggestionText}>✅ Saran: {sugg.suggestion}</Text>
+                      </SlideInItem>
+                    ))}
+                  </View>
+                </ScalePressable>
+              </Animated.View>
             )}
           </View>
         )}
@@ -219,11 +313,16 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 100,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
   },
   inputCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -233,10 +332,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
+  inputCardError: {
+    borderColor: '#ef4444',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   label: {
     color: '#94a3b8',
     fontSize: 14,
-    marginBottom: 12,
   },
   input: {
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
@@ -245,9 +352,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     minHeight: 120,
-    marginBottom: 16,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#334155',
+  },
+  charCount: {
+    color: '#64748b',
+    fontSize: 12,
+    textAlign: 'right',
+    marginBottom: 16,
   },
   button: {
     borderRadius: 12,
@@ -373,20 +486,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   impactCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  impactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   impactTitle: {
-    color: '#fff',
+    color: '#a78bfa',
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 8,
   },
   impactText: {
-    color: '#94a3b8',
+    color: '#c4b5fd',
     fontSize: 14,
     lineHeight: 20,
   },
@@ -397,11 +515,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#10b981',
   },
+  suggestionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   suggestionsTitle: {
     color: '#10b981',
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 12,
   },
   suggestionItem: {
     marginBottom: 12,
@@ -409,14 +532,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(16, 185, 129, 0.2)',
   },
+  suggestionCategoryBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
   suggestionCategory: {
     color: '#34d399',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 4,
   },
   suggestionIssue: {
-    color: '#94a3b8',
+    color: '#fca5a5',
     fontSize: 13,
     marginBottom: 4,
   },
